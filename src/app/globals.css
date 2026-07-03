@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@import "react-big-calendar/lib/css/react-big-calendar.css";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #1e293b;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "PingFang TC",
+    "Microsoft JhengHei",
+    "Noto Sans TC",
+    sans-serif;
+}
+
+/* react-big-calendar: soften defaults to match the slate/amber design */
+.rbc-calendar {
+  @apply text-sm;
+}
+.rbc-toolbar {
+  display: none; /* we render our own toolbar */
+}
+.rbc-event {
+  @apply rounded-lg border text-[11px] font-semibold shadow-sm;
+}
+.rbc-today {
+  background-color: #fffbeb;
+}
+.rbc-header {
+  @apply text-xs font-bold text-slate-500 py-2;
+}
+.rbc-time-slot .rbc-label {
+  @apply text-[10px] text-slate-300;
+}

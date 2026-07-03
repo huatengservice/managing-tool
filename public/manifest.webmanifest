@@ -1,0 +1,13 @@
+{
+  "name": "華騰工程行 工作管理",
+  "short_name": "華騰工作",
+  "description": "水電工程行案件、報價、排程與請款管理",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
