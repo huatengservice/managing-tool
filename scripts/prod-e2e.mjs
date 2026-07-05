@@ -15,7 +15,7 @@ const check = (name, ok, detail) => {
 };
 
 const phone = `09${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
-const email = `${phone}@phone.huateng.local`;
+const email = `${phone}@managing-tool-five.vercel.app`;
 const password = `E2e-${Math.random().toString(36).slice(2)}Xy1`;
 
 const c = createClient(URL, ANON, { auth: { persistSession: false } });
@@ -48,7 +48,7 @@ if (su?.session) {
 
   const phone2 = `09${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
   const c2 = createClient(URL, ANON, { auth: { persistSession: false } });
-  const { data: su2 } = await c2.auth.signUp({ email: `${phone2}@phone.huateng.local`, password });
+  const { data: su2 } = await c2.auth.signUp({ email: `${phone2}@managing-tool-five.vercel.app`, password });
   const { data: otherJobs } = await c2.from("jobs").select("id");
   const { data: otherCustomers } = await c2.from("customers").select("id");
   check("second user sees zero of company A's data", !!su2?.session && (otherJobs ?? []).length === 0 && (otherCustomers ?? []).length === 0, { otherJobs, otherCustomers });
