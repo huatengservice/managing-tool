@@ -7,7 +7,7 @@ insights, and an opt-in customer portal.
 
 Built per `docs/PRODUCT_SPEC.md` (the single source of truth). Next.js App
 Router + TypeScript + Tailwind, Supabase (Postgres + RLS + Auth + Storage),
-NewebPay for payments and e-invoices.
+TapPay for card payments; billing document is the 免用統一發票收據.
 
 ## Local development
 
@@ -60,11 +60,18 @@ tokens.
   structured columns (dispute evidence); the uploaded binary carries no
   EXIF, so shared copies can't leak a customer's address. Offline captures
   queue in IndexedDB and flush on reconnect.
-- **Payments**: invoices are marked paid only by the SHA-256-verified
-  NewebPay webhook (`/api/webhooks/newebpay`); the browser return URL is
-  display-only. SaaS subscriptions (Growth NT$590 / Pro NT$1,290) use
-  NewebPay 定期定額; entitlements flip on the period webhook and live in the
-  `plans.features` JSON — pricing changes are data, not code.
+- **Payments (TapPay)**: card fields are TapPay-served iframes (prime
+  tokenization — card numbers never touch us); charges are synchronous
+  authenticated server calls, so payment truth is our own outbound call,
+  not an inbound webhook. SaaS subscriptions (Growth NT$590 / Pro
+  NT$1,290) charge month 1 at checkout with `remember: true`, store only
+  the returned card token, and `/api/cron/billing` (Vercel cron, daily)
+  renews monthly with a 7-day past-due grace before downgrade.
+  Entitlements live in the `plans.features` JSON — pricing is data, not
+  code.
+- **Receipts**: 免用統一發票收據 PDF (seller/buyer blocks, 大寫金額, stamp
+  areas). No e-invoice vendor — the business is a 小規模營業人 that doesn't
+  issue 統一發票.
 
 ## Production setup checklist
 
@@ -78,11 +85,10 @@ tokens.
    path.
 3. Auth rate limits: Supabase provides defaults — confirm they're enabled
    (spec §15.9), don't assume.
-4. Env vars on Vercel: everything in `.env.example`; NewebPay + ezPay
-   production credentials.
-5. NewebPay back office: point the MPG and 定期定額 NotifyURLs at
-   `/api/webhooks/newebpay` and `/api/webhooks/newebpay/period`.
-6. Legal pages (`/legal/*`) are drafts from `docs/LEGAL_TEMPLATES.md` —
+4. Env vars on Vercel: everything in `.env.example` — TapPay keys
+   (sandbox from portal.tappaysdk.com, production after merchant
+   approval) and a random `CRON_SECRET` for the billing cron.
+5. Legal pages (`/legal/*`) are drafts from `docs/LEGAL_TEMPLATES.md` —
    lawyer review required before first paying tenant (spec §16); consent
    logging is already live.
 
@@ -91,7 +97,7 @@ tokens.
 ```
 supabase/migrations/   schema, RLS, storage policies, plan seed, grants
 src/middleware.ts      session refresh + aal2 gating for staff areas
-src/lib/               supabase clients, auth, i18n, actions, NewebPay
+src/lib/               supabase clients, auth, i18n, actions, TapPay
 src/app/(bo)/bo/       owner app: pipeline, schedule, jobs, customers,
                        team, materials, insights, billing
 src/app/(worker)/      worker app: my jobs, job detail

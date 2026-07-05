@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, CreditCard, X } from "lucide-react";
-import { downgradeToStarter, startSubscription } from "@/lib/actions/billing";
+import { downgradeToStarter } from "@/lib/actions/billing";
 import { useLang, useT } from "@/lib/i18n/provider";
 import { updateCompanyInfo } from "@/lib/actions/company";
 import type { Company, CompanySubscription, Plan, PlanId } from "@/lib/types";
@@ -23,10 +23,6 @@ export function BillingClient({
   const t = useT();
   const { lang } = useLang();
   const router = useRouter();
-  const [upgradeTarget, setUpgradeTarget] = useState<Plan | null>(null);
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   const featureLines = (p: Plan) => {
     const lines: string[] = [
@@ -43,28 +39,6 @@ export function BillingClient({
     );
     return lines;
   };
-
-  async function upgrade() {
-    if (!upgradeTarget) return;
-    setBusy(true);
-    setError(null);
-    const res = await startSubscription({
-      companyId,
-      planId: upgradeTarget.id as "growth" | "pro",
-      email,
-    });
-    if (res.error) {
-      setError(
-        res.error === "invalid_email"
-          ? t("請輸入有效的電子郵件", "Enter a valid email address")
-          : res.error === "gateway_not_configured"
-            ? t("金流金鑰尚未設定（TAPPAY_*）", "Payment gateway credentials not configured (TAPPAY_*)")
-            : t("升級失敗，請再試一次", "Upgrade failed — try again")
-      );
-      setBusy(false);
-      return;
-    }
-  }
 
   return (
     <div>
@@ -129,10 +103,7 @@ export function BillingClient({
                 </button>
               ) : (
                 <button
-                  onClick={() => {
-                    setUpgradeTarget(p);
-                    setError(null);
-                  }}
+                  onClick={() => router.push(`/bo/billing/checkout?plan=${p.id}`)}
                   className="mt-5 text-sm font-semibold bg-slate-900 text-white rounded-xl py-2.5 hover:bg-slate-800 flex items-center justify-center gap-1.5"
                 >
                   <CreditCard size={14} />
@@ -168,48 +139,6 @@ export function BillingClient({
         </a>
       </div>
 
-      {/* upgrade modal below */}
-      {upgradeTarget && (
-        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-slate-800">
-                {t(
-                  `升級至 ${upgradeTarget.name_zh}`,
-                  `Upgrade to ${upgradeTarget.name_en}`
-                )}
-              </h3>
-              <button onClick={() => setUpgradeTarget(null)} className="text-slate-400">
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-xs text-slate-400 mb-3">
-              {t(
-                `每月 NT$${upgradeTarget.price_monthly.toLocaleString()}，卡片資料由 TapPay 安全欄位處理。`,
-                `NT$${upgradeTarget.price_monthly.toLocaleString()}/month, card handled by TapPay's secure fields.`
-              )}
-            </p>
-            <label className="text-xs font-semibold text-slate-500">
-              {t("帳單通知電子郵件", "Billing notification email")}
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm mb-3"
-            />
-            {error && <p className="text-xs text-rose-500 mb-3">{error}</p>}
-            <button
-              onClick={upgrade}
-              disabled={busy}
-              className="w-full bg-slate-900 text-white text-sm font-semibold rounded-xl py-2.5 disabled:opacity-60"
-            >
-              {busy ? t("準備中…", "Preparing…") : t("前往付款授權", "Continue to payment")}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
