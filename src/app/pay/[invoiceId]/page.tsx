@@ -1,15 +1,14 @@
-import { randomBytes } from "crypto";
 import { CreditCard } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { buildInvoicePaymentForm } from "@/lib/newebpay/mpg";
-import { GatewayRedirectForm } from "@/components/gateway-redirect-form";
+import { isTapPayConfigured } from "@/lib/tappay/server";
 import { ntd } from "@/lib/format";
+import { PayClient } from "./pay-client";
 
 /**
- * Card payment hand-off for an invoice (spec §3.6). Reached from the share
+ * Card payment page for an invoice (spec §3.6). Reached from the share
  * link or the customer portal; the invoice id is an unguessable UUID and
- * this page exposes only amount + payee. Payment truth comes from the
- * signature-verified webhook, never from this page or the return redirect.
+ * this page exposes only amount + payee. The charge itself happens
+ * server-to-server in /api/pay with the secret partner key.
  */
 export default async function PayPage({
   params,
@@ -47,34 +46,16 @@ export default async function PayPage({
     );
   }
 
-  // One fresh order number per attempt; the webhook reconciles by it.
-  const orderNo = `PAY${Date.now()}${randomBytes(2).toString("hex").toUpperCase()}`;
-  const form = buildInvoicePaymentForm({
-    merchantOrderNo: orderNo,
-    amount: invoice.amount,
-    itemDesc: (invoice.jobs as unknown as { description: string }).description,
-  });
-
-  if (!form) {
+  if (!isTapPayConfigured()) {
     return (
       <Shell>
         <h1 className="text-base font-bold text-slate-800 mb-2">金流尚未設定</h1>
         <p className="text-sm text-slate-500">
-          尚未設定 NewebPay 金流金鑰（NEWEBPAY_*），暫時無法線上付款。
+          尚未設定 TapPay 金流金鑰（TAPPAY_*），暫時無法線上付款。
         </p>
       </Shell>
     );
   }
-
-  await admin.from("payments").insert({
-    company_id: invoice.company_id,
-    invoice_id: invoice.id,
-    amount: invoice.amount,
-    method: "card",
-    status: "pending",
-    provider: "newebpay",
-    provider_trade_no: orderNo,
-  });
 
   return (
     <Shell>
@@ -88,11 +69,7 @@ export default async function PayPage({
         <p className="text-2xl font-bold text-slate-900 mt-2">{ntd(invoice.amount)}</p>
         <p className="text-xs text-slate-400 mt-1">{invoice.number}</p>
       </div>
-      <GatewayRedirectForm
-        action={form.action}
-        fields={form.fields}
-        label="前往藍新金流安全付款頁面"
-      />
+      <PayClient invoiceId={invoice.id} />
     </Shell>
   );
 }

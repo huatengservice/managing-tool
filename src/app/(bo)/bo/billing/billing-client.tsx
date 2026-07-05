@@ -4,8 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, CreditCard, X } from "lucide-react";
 import { downgradeToStarter, startSubscription } from "@/lib/actions/billing";
-import { GatewayRedirectForm } from "@/components/gateway-redirect-form";
-import type { GatewayForm } from "@/lib/newebpay/mpg";
 import { useLang, useT } from "@/lib/i18n/provider";
 import { updateCompanyInfo } from "@/lib/actions/company";
 import type { Company, CompanySubscription, Plan, PlanId } from "@/lib/types";
@@ -27,7 +25,6 @@ export function BillingClient({
   const router = useRouter();
   const [upgradeTarget, setUpgradeTarget] = useState<Plan | null>(null);
   const [email, setEmail] = useState("");
-  const [gatewayForm, setGatewayForm] = useState<GatewayForm | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -56,30 +53,17 @@ export function BillingClient({
       planId: upgradeTarget.id as "growth" | "pro",
       email,
     });
-    if (res.error || !res.form) {
+    if (res.error) {
       setError(
         res.error === "invalid_email"
           ? t("請輸入有效的電子郵件", "Enter a valid email address")
           : res.error === "gateway_not_configured"
-            ? t("金流金鑰尚未設定（NEWEBPAY_*）", "Payment gateway credentials not configured (NEWEBPAY_*)")
+            ? t("金流金鑰尚未設定（TAPPAY_*）", "Payment gateway credentials not configured (TAPPAY_*)")
             : t("升級失敗，請再試一次", "Upgrade failed — try again")
       );
       setBusy(false);
       return;
     }
-    setGatewayForm(res.form);
-  }
-
-  if (gatewayForm) {
-    return (
-      <div className="max-w-sm mx-auto py-20">
-        <GatewayRedirectForm
-          action={gatewayForm.action}
-          fields={gatewayForm.fields}
-          label={t("前往藍新金流設定定期扣款", "Continue to NewebPay recurring billing")}
-        />
-      </div>
-    );
   }
 
   return (
@@ -161,8 +145,8 @@ export function BillingClient({
       </div>
       <p className="text-xs text-slate-400 mt-4">
         {t(
-          "付費方案透過藍新金流（NewebPay）以信用卡每月定期扣款；升級於授權成功後立即生效。",
-          "Paid plans bill monthly by card via NewebPay; upgrades take effect as soon as authorization succeeds."
+          "付費方案以信用卡（TapPay）每月定期扣款；升級於授權成功後立即生效。",
+          "Paid plans bill monthly by card via TapPay; upgrades take effect as soon as authorization succeeds."
         )}
       </p>
 
@@ -201,8 +185,8 @@ export function BillingClient({
             </div>
             <p className="text-xs text-slate-400 mb-3">
               {t(
-                `每月 NT$${upgradeTarget.price_monthly.toLocaleString()}，於藍新金流安全頁面完成信用卡授權。`,
-                `NT$${upgradeTarget.price_monthly.toLocaleString()}/month, authorized on NewebPay's secure page.`
+                `每月 NT$${upgradeTarget.price_monthly.toLocaleString()}，卡片資料由 TapPay 安全欄位處理。`,
+                `NT$${upgradeTarget.price_monthly.toLocaleString()}/month, card handled by TapPay's secure fields.`
               )}
             </p>
             <label className="text-xs font-semibold text-slate-500">
