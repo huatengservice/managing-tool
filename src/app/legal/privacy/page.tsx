@@ -31,7 +31,7 @@ export default function PrivacyPage() {
       <ul>
         <li>Supabase — 資料庫、驗證與檔案儲存基礎設施。</li>
         <li>藍新金流（NewebPay）— 付款處理與電子發票開立。</li>
-        <li>Google / Facebook / LINE — 僅於使用者選擇以該方式登入時，依各服務自身之隱私政策。</li>
+        <li>Google — 僅於使用者選擇以 Google 帳號登入時，依 Google 自身之隱私政策。</li>
       </ul>
       <p>我們不會出售資料給第三方。</p>
 
