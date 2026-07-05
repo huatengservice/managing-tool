@@ -6,7 +6,15 @@
  * from the normalized phone. The UI only ever shows the phone number.
  */
 
-const PHONE_EMAIL_DOMAIN = "phone.huateng.local";
+/**
+ * Hosted Supabase validates email domains (rejects .local), so production
+ * uses the app's own Vercel subdomain: it passes validation, is on the
+ * Public Suffix List (nobody can register it), and can never receive mail
+ * — meaning recovery emails to it are undeliverable by construction.
+ * Local dev falls back to the .local domain the local stack accepts.
+ */
+const PHONE_EMAIL_DOMAIN =
+  process.env.NEXT_PUBLIC_PHONE_EMAIL_DOMAIN ?? "phone.huateng.local";
 
 /** Normalize Taiwan phone input: strip separators, +886 → 0 prefix. */
 export function normalizePhone(input: string): string {
