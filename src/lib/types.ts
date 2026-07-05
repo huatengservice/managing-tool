@@ -269,7 +269,8 @@ export interface CompanySubscription {
   company_id: string;
   plan_id: PlanId;
   status: SubscriptionStatus;
-  newebpay_period_no: string | null;
+  card_key: string | null;
+  card_token: string | null;
   period_start: string | null;
   period_end: string | null;
 }

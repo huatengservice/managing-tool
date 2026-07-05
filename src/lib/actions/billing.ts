@@ -1,65 +1,23 @@
 "use server";
 
-import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { buildSubscriptionForm, type GatewayForm } from "@/lib/newebpay/mpg";
 
 /**
- * SaaS billing (spec §10): Growth/Pro route to a real NewebPay recurring
- * (定期定額) checkout. The subscription activates — and entitlements flip —
- * only when the period webhook confirms authorization.
+ * SaaS billing (spec §10). Payments moved to TapPay (owner decision
+ * 2026-07-05): the recurring checkout collects a card via TapPay's secure
+ * fields and stores only the returned card token; a scheduled job charges
+ * it monthly. The card-token checkout lands in the follow-up PR — until
+ * then upgrades report the gateway as unavailable.
  */
 export async function startSubscription(input: {
   companyId: string;
   planId: "growth" | "pro";
   email: string;
-}): Promise<{ form?: GatewayForm; error?: string }> {
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email)) return { error: "invalid_email" };
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "not_authenticated" };
-
-  // BO-only: memberships is RLS-readable; verify the role explicitly.
-  const { data: membership } = await supabase
-    .from("memberships")
-    .select("role")
-    .eq("company_id", input.companyId)
-    .eq("user_id", user.id)
-    .eq("active", true)
-    .maybeSingle();
-  if (membership?.role !== "bo") return { error: "not_authorized" };
-
-  const { data: plan } = await supabase
-    .from("plans")
-    .select("id, name_zh, price_monthly")
-    .eq("id", input.planId)
-    .single();
-  if (!plan || plan.price_monthly <= 0) return { error: "invalid_plan" };
-
-  const orderNo = `SUB${Date.now()}${randomBytes(2).toString("hex").toUpperCase()}`;
-  const form = buildSubscriptionForm({
-    merchantOrderNo: orderNo,
-    amountPerPeriod: plan.price_monthly,
-    description: `工作管理系統 ${plan.name_zh} 月費`,
-    payerEmail: input.email,
-  });
-  if (!form) return { error: "gateway_not_configured" };
-
-  const admin = createAdminClient();
-  const { error } = await admin.from("company_subscriptions").insert({
-    company_id: input.companyId,
-    plan_id: input.planId,
-    status: "pending",
-    newebpay_period_no: orderNo,
-  });
-  if (error) return { error: "subscription_failed" };
-
-  return { form };
+}): Promise<{ error?: string }> {
+  void input;
+  return { error: "gateway_not_configured" };
 }
 
 /** Downgrade to the free tier; cancels the active subscription record. */

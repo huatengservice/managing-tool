@@ -30,7 +30,7 @@ export default function PrivacyPage() {
       <h2>4. 資料分享對象</h2>
       <ul>
         <li>Supabase — 資料庫、驗證與檔案儲存基礎設施。</li>
-        <li>藍新金流（NewebPay）— 付款處理與電子發票開立。</li>
+        <li>TapPay（喬睿科技）— 信用卡付款處理；卡號由其安全欄位處理，本平台不經手。</li>
         <li>Google — 僅於使用者選擇以 Google 帳號登入時，依 Google 自身之隱私政策。</li>
       </ul>
       <p>我們不會出售資料給第三方。</p>
