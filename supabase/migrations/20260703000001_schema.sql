@@ -452,7 +452,7 @@ $$;
 -- memberships/companies can stay locked down) ----------
 
 -- Public company signup (spec §8): creates tenant + BO membership atomically.
-create or replace function app.create_company(p_name text, p_tax_id text default null)
+create or replace function public.create_company(p_name text, p_tax_id text default null)
 returns uuid
 language plpgsql security definer set search_path = public as $$
 declare
@@ -474,7 +474,7 @@ $$;
 
 -- Worker invite acceptance (spec §8): single-use token, flips roster
 -- Invited → Active, creates the worker membership.
-create or replace function app.accept_worker_invite(p_token text)
+create or replace function public.accept_worker_invite(p_token text)
 returns uuid
 language plpgsql security definer set search_path = public as $$
 declare
@@ -507,7 +507,7 @@ $$;
 
 -- Read-only invite preview so the invite landing page can show company
 -- name + pre-filled phone before the worker authenticates.
-create or replace function app.peek_worker_invite(p_token text)
+create or replace function public.peek_worker_invite(p_token text)
 returns table (company_name text, worker_name text, worker_phone text)
 language sql stable security definer set search_path = public as $$
   select c.name, w.name, w.phone
