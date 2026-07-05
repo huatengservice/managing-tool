@@ -10,9 +10,9 @@ import { useT } from "@/lib/i18n/provider";
 import type { Invoice, Job } from "@/lib/types";
 
 /**
- * Invoicing (spec §3.6, BO-only): official e-invoice (統一發票) or informal
- * receipt; payment by card online (customer side) or manual cash/transfer
- * marking here. Share link + downloadable PDF.
+ * Billing (spec §3.6, BO-only). The billing document is the informal
+ * receipt (免用統一發票收據) — e-invoice was deferred by owner decision.
+ * Payment: card online (customer side) or manual cash/transfer marking.
  */
 export function InvoiceTab({
   job,
@@ -27,7 +27,6 @@ export function InvoiceTab({
 }) {
   const t = useT();
   const router = useRouter();
-  const [type, setType] = useState<"einvoice" | "receipt">(invoice?.type ?? "einvoice");
   const [buyerUbn, setBuyerUbn] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -37,16 +36,14 @@ export function InvoiceTab({
   async function issue() {
     setBusy(true);
     setError(null);
-    const res = await issueInvoice({ jobId: job.id, type, buyerUbn: buyerUbn.trim() || null });
+    const res = await issueInvoice({ jobId: job.id, buyerUbn: buyerUbn.trim() || null });
     if (res.error) {
       setError(
-        res.error === "plan_no_einvoice"
-          ? t("目前方案不含電子發票，請至「方案與帳單」升級", "Your plan doesn't include e-invoices — upgrade under Plan & Billing")
-          : res.error === "einvoice_not_configured"
-            ? t("電子發票金鑰尚未設定（EZPAY_INVOICE_*）", "E-invoice credentials are not configured (EZPAY_INVOICE_*)")
-            : res.error === "no_accepted_quote"
-              ? t("需先有客戶已簽署的報價單", "A customer-signed quote is required first")
-              : t("開立失敗，請再試一次", "Issuing failed — try again")
+        res.error === "no_accepted_quote"
+          ? t("需先有客戶已簽署的報價單", "A customer-signed quote is required first")
+          : res.error === "invalid_ubn"
+            ? t("統一編號須為 8 位數字", "Tax ID must be 8 digits")
+            : t("開立失敗，請再試一次", "Issuing failed — try again")
       );
       setBusy(false);
       return;
@@ -69,12 +66,12 @@ export function InvoiceTab({
       <div className="bg-white border border-slate-200 rounded-xl p-5">
         <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-1.5">
           <DollarSign size={15} />
-          {t("建立帳單", "Create Invoice")}
+          {t("開立收據", "Issue Receipt")}
         </h3>
         <p className="text-sm text-slate-400">
           {t(
-            "工作完成並經雙方簽署後即可開立帳單。",
-            "You can issue an invoice once the work is done and both parties have signed off."
+            "工作完成並經雙方簽署後即可開立收據。",
+            "You can issue a receipt once the work is done and both parties have signed off."
           )}
         </p>
       </div>
@@ -85,76 +82,47 @@ export function InvoiceTab({
     <div className="bg-white border border-slate-200 rounded-xl p-5">
       <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-1.5">
         <DollarSign size={15} />
-        {invoice ? t("帳單", "Invoice") : t("建立帳單", "Create Invoice")}
+        {invoice ? t("收據", "Receipt") : t("開立收據", "Issue Receipt")}
       </h3>
 
       {!invoice ? (
         <>
           <p className="text-xs text-slate-400 mb-3">
             {t(
-              `金額取自已簽署的報價單，總計 ${ntd(quoteTotal)}`,
-              `Amount from the signed quote, total ${ntd(quoteTotal)}`
+              `金額取自已簽署的報價單，總計 ${ntd(quoteTotal)}。開立「免用統一發票收據」，可下載 PDF 或分享連結給客戶。`,
+              `Amount from the signed quote, total ${ntd(quoteTotal)}. Issues an informal receipt (免用統一發票收據) with PDF download and share link.`
             )}
           </p>
-          <div className="flex gap-3 mb-4">
-            <label
-              className={`flex-1 rounded-xl p-3 text-sm cursor-pointer border-2 ${
-                type === "einvoice" ? "border-amber-400 bg-amber-50" : "border-slate-200"
-              }`}
-            >
-              <input
-                type="radio"
-                checked={type === "einvoice"}
-                onChange={() => setType("einvoice")}
-                className="mr-2"
-              />
-              {t("正式電子發票（統一發票）", "Official E-Invoice")}
+          <div className="mb-4">
+            <label className="text-xs font-semibold text-slate-500">
+              {t("買受人統一編號（選填，公司客戶報帳用）", "Buyer Tax ID (optional, for business customers)")}
             </label>
-            <label
-              className={`flex-1 rounded-xl p-3 text-sm cursor-pointer border-2 ${
-                type === "receipt" ? "border-amber-400 bg-amber-50" : "border-slate-200"
-              }`}
-            >
-              <input
-                type="radio"
-                checked={type === "receipt"}
-                onChange={() => setType("receipt")}
-                className="mr-2"
-              />
-              {t("一般收據", "Informal Receipt")}
-            </label>
+            <input
+              value={buyerUbn}
+              onChange={(e) => setBuyerUbn(e.target.value)}
+              inputMode="numeric"
+              maxLength={8}
+              className="mt-1 w-full max-w-xs border border-slate-200 rounded-lg px-3 py-2 text-sm"
+            />
           </div>
-          {type === "einvoice" && (
-            <div className="mb-4">
-              <label className="text-xs font-semibold text-slate-500">
-                {t("買受人統一編號（選填，B2B 發票用）", "Buyer Tax ID (optional, for B2B invoices)")}
-              </label>
-              <input
-                value={buyerUbn}
-                onChange={(e) => setBuyerUbn(e.target.value)}
-                inputMode="numeric"
-                className="mt-1 w-full max-w-xs border border-slate-200 rounded-lg px-3 py-2 text-sm"
-              />
-            </div>
-          )}
           {error && <p className="text-xs text-rose-500 mb-3">{error}</p>}
           <button
             onClick={issue}
             disabled={busy}
             className="text-sm bg-slate-900 text-white rounded-lg px-4 py-2 font-semibold disabled:opacity-60"
           >
-            {busy ? t("開立中…", "Issuing…") : t("開立帳單", "Issue Invoice")}
+            {busy ? t("開立中…", "Issuing…") : t("開立收據", "Issue Receipt")}
           </button>
         </>
       ) : (
         <>
           <div className="grid sm:grid-cols-2 gap-3 mb-4 text-sm">
             <div className="bg-slate-50 rounded-lg p-3">
-              <span className="text-xs text-slate-400 block">{t("單號", "Number")}</span>
+              <span className="text-xs text-slate-400 block">{t("收據編號", "Receipt No.")}</span>
               <span className="font-mono">{invoice.number}</span>
-              {invoice.einvoice_number && (
+              {invoice.buyer_ubn && (
                 <span className="block text-xs text-slate-500 mt-1">
-                  {t("發票號碼", "E-invoice No.")}：{invoice.einvoice_number}
+                  {t("買受人統編", "Buyer Tax ID")}：{invoice.buyer_ubn}
                 </span>
               )}
             </div>
@@ -183,7 +151,7 @@ export function InvoiceTab({
           </div>
 
           {invoice.status === "unpaid" && (
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
               <select
                 value={markMethod}
                 onChange={(e) => setMarkMethod(e.target.value as "cash" | "transfer")}
@@ -214,7 +182,7 @@ export function InvoiceTab({
               className="text-sm border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50 flex items-center gap-1.5"
             >
               <Share2 size={14} />
-              {t("分享帳單", "Share Invoice")}
+              {t("分享收據", "Share Receipt")}
             </button>
             <a
               href={`/api/invoices/${invoice.id}/pdf`}
@@ -229,7 +197,7 @@ export function InvoiceTab({
 
       {showShare && invoice && (
         <ShareModal
-          title={t("分享帳單", "Share Invoice")}
+          title={t("分享收據", "Share Receipt")}
           subjectType="invoice"
           subjectId={invoice.id}
           onClose={() => setShowShare(false)}

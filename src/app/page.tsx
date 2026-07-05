@@ -9,8 +9,7 @@ export default async function LandingPage() {
   const plans = (data ?? []) as Plan[];
 
   const featureLines = (p: Plan) => {
-    const lines = ["案件紀錄與進度看板", "排程（師傅＋車輛）", "報價與完工雙方簽署", "材料採購紀錄"];
-    if (p.features.einvoice) lines.push("電子發票（統一發票）");
+    const lines = ["案件紀錄與進度看板", "排程（師傅＋車輛）", "報價與完工雙方簽署", "收據開立與 PDF 下載", "材料採購紀錄"];
     if (p.features.online_payment) lines.push("線上刷卡收款");
     if (p.features.cross_worker_dashboard) lines.push("跨師傅營運分析");
     if (p.features.priority_support) lines.push("優先客服支援");

@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { issueEinvoice } from "@/lib/newebpay/einvoice";
 import type { ActionResult } from "@/lib/actions/jobs";
 
 function refresh() {
@@ -11,14 +10,16 @@ function refresh() {
 }
 
 /**
- * Invoicing is BO-only (spec §2) — RLS and the jobs trigger reject anyone
- * else even if this action is called directly. Choice of official
- * e-invoice (統一發票, via ezPay) or informal receipt (spec §3.6).
- * E-invoice requires a Growth/Pro plan (spec §10).
+ * Billing is BO-only (spec §2) — RLS and the jobs trigger reject anyone
+ * else even if this action is called directly.
+ *
+ * Owner decision 2026-07-05: the business is a 小規模營業人 that doesn't
+ * issue 統一發票, so the informal receipt (免用統一發票收據) is the billing
+ * document; e-invoice/ezPay was removed. An optional buyer 統編 can be
+ * printed for business customers.
  */
 export async function issueInvoice(input: {
   jobId: string;
-  type: "einvoice" | "receipt";
   buyerUbn?: string | null;
 }): Promise<ActionResult> {
   const supabase = await createClient();
@@ -26,10 +27,11 @@ export async function issueInvoice(input: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "not_authenticated" };
+  if (input.buyerUbn && !/^\d{8}$/.test(input.buyerUbn.trim())) return { error: "invalid_ubn" };
 
   const { data: job } = await supabase
     .from("jobs")
-    .select("*, customers(name), companies(plan_id, name, tax_id)")
+    .select("id, company_id, job_number, status")
     .eq("id", input.jobId)
     .maybeSingle();
   if (!job) return { error: "not_found" };
@@ -51,34 +53,7 @@ export async function issueInvoice(input: {
   );
   if (amount <= 0) return { error: "no_accepted_quote" };
 
-  // Plan entitlement check (server-side, not just hidden buttons — §15.10).
-  if (input.type === "einvoice") {
-    const { data: plan } = await supabase
-      .from("plans")
-      .select("features")
-      .eq("id", (job.companies as unknown as { plan_id: string }).plan_id)
-      .single();
-    if (!plan?.features?.einvoice) return { error: "plan_no_einvoice" };
-  }
-
-  const number = `INV-${new Date().getFullYear()}-${String(job.job_number).padStart(5, "0")}`;
-
-  let einvoiceNumber: string | null = null;
-  let einvoiceRandom: string | null = null;
-  let providerRaw: unknown = null;
-  if (input.type === "einvoice") {
-    const result = await issueEinvoice({
-      orderNo: number.replace(/-/g, ""),
-      amount,
-      buyerName: (job.customers as unknown as { name: string }).name,
-      buyerUbn: input.buyerUbn ?? null,
-      itemName: "水電工程服務",
-    });
-    if (!result.ok) return { error: result.error ?? "einvoice_failed" };
-    einvoiceNumber = result.invoiceNumber ?? null;
-    einvoiceRandom = result.randomNum ?? null;
-    providerRaw = result.raw ?? null;
-  }
+  const number = `R-${new Date().getFullYear()}-${String(job.job_number).padStart(5, "0")}`;
 
   const { data: invoice, error } = await supabase
     .from("invoices")
@@ -86,12 +61,10 @@ export async function issueInvoice(input: {
       company_id: job.company_id,
       job_id: job.id,
       quote_id: quote.id,
-      type: input.type,
+      type: "receipt",
       number,
       amount,
-      einvoice_number: einvoiceNumber,
-      einvoice_random: einvoiceRandom,
-      provider_raw: providerRaw,
+      buyer_ubn: input.buyerUbn?.trim() || null,
       issued_by: user.id,
     })
     .select("id")
@@ -103,7 +76,7 @@ export async function issueInvoice(input: {
   return { id: invoice.id };
 }
 
-/** Manual cash/transfer marking (spec §3.6). Card payments come via webhook. */
+/** Manual cash/transfer marking (spec §3.6). Card payments confirm via TapPay server-side. */
 export async function markInvoicePaid(input: {
   invoiceId: string;
   method: "cash" | "transfer";

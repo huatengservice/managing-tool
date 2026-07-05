@@ -24,7 +24,7 @@ export default async function BillingPage() {
       plans={(plans ?? []) as Plan[]}
       currentPlanId={ctx.plan.id}
       subscription={(subscription as CompanySubscription) ?? null}
-      companyId={ctx.companyId}
+      company={ctx.company}
     />
   );
 }

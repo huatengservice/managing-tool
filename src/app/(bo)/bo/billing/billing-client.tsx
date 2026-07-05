@@ -7,19 +7,21 @@ import { downgradeToStarter, startSubscription } from "@/lib/actions/billing";
 import { GatewayRedirectForm } from "@/components/gateway-redirect-form";
 import type { GatewayForm } from "@/lib/newebpay/mpg";
 import { useLang, useT } from "@/lib/i18n/provider";
-import type { CompanySubscription, Plan, PlanId } from "@/lib/types";
+import { updateCompanyInfo } from "@/lib/actions/company";
+import type { Company, CompanySubscription, Plan, PlanId } from "@/lib/types";
 
 export function BillingClient({
   plans,
   currentPlanId,
   subscription,
-  companyId,
+  company,
 }: {
   plans: Plan[];
   currentPlanId: PlanId;
   subscription: CompanySubscription | null;
-  companyId: string;
+  company: Company;
 }) {
+  const companyId = company.id;
   const t = useT();
   const { lang } = useLang();
   const router = useRouter();
@@ -31,9 +33,8 @@ export function BillingClient({
 
   const featureLines = (p: Plan) => {
     const lines: string[] = [
-      t("案件、報價、排程、簽署、材料紀錄", "Jobs, quotes, scheduling, signing, materials"),
+      t("案件、報價、排程、簽署、收據、材料紀錄", "Jobs, quotes, scheduling, signing, receipts, materials"),
     ];
-    if (p.features.einvoice) lines.push(t("電子發票（統一發票）", "Official e-invoices"));
     if (p.features.online_payment) lines.push(t("線上刷卡收款", "Online card payments"));
     if (p.features.cross_worker_dashboard)
       lines.push(t("跨師傅營運分析", "Cross-worker business insights"));
@@ -165,6 +166,8 @@ export function BillingClient({
         )}
       </p>
 
+      <CompanyInfoCard company={company} />
+
       <div className="mt-8 border-t border-slate-200 pt-5">
         <h3 className="text-sm font-bold text-slate-700 mb-1">{t("資料匯出", "Data Export")}</h3>
         <p className="text-xs text-slate-400 mb-3">
@@ -181,6 +184,7 @@ export function BillingClient({
         </a>
       </div>
 
+      {/* upgrade modal below */}
       {upgradeTarget && (
         <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
@@ -222,6 +226,97 @@ export function BillingClient({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Seller details printed on every receipt (免用統一發票收據). */
+function CompanyInfoCard({ company }: { company: Company }) {
+  const t = useT();
+  const router = useRouter();
+  const [form, setForm] = useState({
+    name: company.name,
+    taxId: company.tax_id ?? "",
+    address: company.address,
+    phone: company.phone,
+  });
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus("saving");
+    const res = await updateCompanyInfo({ companyId: company.id, ...form });
+    setStatus(res.error ? "error" : "saved");
+    if (!res.error) {
+      router.refresh();
+      setTimeout(() => setStatus("idle"), 2000);
+    }
+  }
+
+  return (
+    <div className="mt-8 border-t border-slate-200 pt-5">
+      <h3 className="text-sm font-bold text-slate-700 mb-1">
+        {t("公司資料（顯示於收據）", "Company Info (printed on receipts)")}
+      </h3>
+      <p className="text-xs text-slate-400 mb-3">
+        {t(
+          "收據上的商號名稱、統一編號、地址與電話取自這裡。",
+          "The seller name, tax ID, address, and phone on receipts come from here."
+        )}
+      </p>
+      <form onSubmit={save} className="grid sm:grid-cols-2 gap-3 max-w-2xl">
+        <div>
+          <label className="text-xs font-semibold text-slate-500">{t("商號名稱", "Business Name")}</label>
+          <input
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500">
+            {t("統一編號（選填）", "Tax ID (optional)")}
+          </label>
+          <input
+            value={form.taxId}
+            onChange={(e) => setForm((f) => ({ ...f, taxId: e.target.value }))}
+            inputMode="numeric"
+            maxLength={8}
+            className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500">{t("地址", "Address")}</label>
+          <input
+            value={form.address}
+            onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+            className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-500">{t("電話", "Phone")}</label>
+          <input
+            value={form.phone}
+            onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+            inputMode="tel"
+            className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+        <div className="sm:col-span-2 flex items-center gap-3">
+          <button
+            disabled={status === "saving"}
+            className="text-sm font-semibold bg-slate-900 text-white rounded-xl px-4 py-2.5 disabled:opacity-60"
+          >
+            {t("儲存公司資料", "Save Company Info")}
+          </button>
+          {status === "saved" && <span className="text-xs text-emerald-600">{t("已儲存 ✓", "Saved ✓")}</span>}
+          {status === "error" && (
+            <span className="text-xs text-rose-500">
+              {t("儲存失敗（統編須為 8 位數字）", "Save failed (tax ID must be 8 digits)")}
+            </span>
+          )}
+        </div>
+      </form>
     </div>
   );
 }
