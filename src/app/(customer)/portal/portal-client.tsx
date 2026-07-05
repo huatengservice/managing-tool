@@ -173,7 +173,7 @@ function PortalJobCard({ job }: { job: PortalJob }) {
       {job.invoice && (
         <div className="flex items-center justify-between bg-slate-50 rounded-lg p-3 mb-3 text-sm">
           <span className="text-slate-600">
-            {job.invoice.type === "einvoice" ? t("電子發票", "E-Invoice") : t("收據", "Receipt")}{" "}
+            {t("收據", "Receipt")}{" "}
             <span className="font-mono text-xs text-slate-400">{job.invoice.number}</span>
           </span>
           {job.invoice.status === "paid" ? (

@@ -57,6 +57,8 @@ export interface Company {
   id: string;
   name: string;
   tax_id: string | null;
+  address: string;
+  phone: string;
   plan_id: PlanId;
   created_at: string;
 }
@@ -212,6 +214,7 @@ export interface Invoice {
   amount: number;
   status: InvoiceStatus;
   payment_method: PaymentMethod | null;
+  buyer_ubn: string | null;
   einvoice_number: string | null;
   einvoice_random: string | null;
   issued_at: string;

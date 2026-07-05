@@ -113,13 +113,13 @@ export default async function SharePage({
     <Frame>
       <DocHeader
         company={inv.companies.name}
-        title={inv.type === "einvoice" ? "電子發票 E-Invoice" : "收據 Receipt"}
+        title="收據（免用統一發票） Receipt"
         subtitle={`${inv.jobs.customers.name} — ${inv.jobs.description}`}
         code={inv.number}
       />
-      {inv.einvoice_number && (
+      {inv.buyer_ubn && (
         <p className="text-sm text-slate-600 mb-2">
-          發票號碼 Invoice No.：<span className="font-mono">{inv.einvoice_number}</span>
+          買受人統編 Buyer Tax ID：<span className="font-mono">{inv.buyer_ubn}</span>
         </p>
       )}
       <div className="flex items-center justify-between bg-slate-50 rounded-xl p-4 mb-4">
