@@ -76,8 +76,8 @@ tokens.
    custom providers).
 3. Auth rate limits: Supabase provides defaults — confirm they're enabled
    (spec §15.9), don't assume.
-4. Env vars on Vercel: everything in `.env.example`; `TOKEN_SIGNING_SECRET`
-   fresh random; NewebPay + ezPay production credentials.
+4. Env vars on Vercel: everything in `.env.example`; NewebPay + ezPay
+   production credentials.
 5. NewebPay back office: point the MPG and 定期定額 NotifyURLs at
    `/api/webhooks/newebpay` and `/api/webhooks/newebpay/period`.
 6. Legal pages (`/legal/*`) are drafts from `docs/LEGAL_TEMPLATES.md` —
