@@ -165,6 +165,22 @@ export function BillingClient({
         )}
       </p>
 
+      <div className="mt-8 border-t border-slate-200 pt-5">
+        <h3 className="text-sm font-bold text-slate-700 mb-1">{t("資料匯出", "Data Export")}</h3>
+        <p className="text-xs text-slate-400 mb-3">
+          {t(
+            "隨時可下載貴公司的全部資料（JSON 格式）：案件、客戶、報價、簽署紀錄、帳單、材料等。",
+            "Download everything your company owns (JSON): jobs, customers, quotes, signature log, invoices, materials, and more."
+          )}
+        </p>
+        <a
+          href={`/api/export?company=${companyId}`}
+          className="inline-block text-sm font-semibold border border-slate-200 rounded-xl px-4 py-2.5 hover:bg-slate-50 text-slate-600"
+        >
+          {t("匯出全部資料", "Export all data")}
+        </a>
+      </div>
+
       {upgradeTarget && (
         <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
