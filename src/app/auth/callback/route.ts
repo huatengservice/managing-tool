@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * OAuth (Google/Facebook/LINE) redirect target. Supabase's server-side code
+ * OAuth (Google) redirect target. Supabase's server-side code
  * exchange validates the PKCE flow (state/nonce — spec §15.13). New OAuth
  * users still need a phone number (primary identifier, spec §8), so anyone
  * without a profile is routed through /auth/complete-profile first.

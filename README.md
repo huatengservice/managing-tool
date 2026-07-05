@@ -71,9 +71,11 @@ tokens.
 1. Supabase project: run migrations (`npx supabase db push`), confirm both
    storage buckets are **private**, enable TOTP MFA, set session
    timebox/inactivity timeout (Auth → Sessions).
-2. OAuth: configure Google + Facebook providers; add LINE as a **custom
-   OIDC provider** named `line` (LINE is OIDC-compliant; free tier allows 3
-   custom providers).
+2. OAuth: configure the Google provider (callback:
+   `https://<project-ref>.supabase.co/auth/v1/callback`). Google is the
+   only social login — Facebook/LINE were dropped by owner decision
+   (2026-07-05), diverging from spec §8; phone+password is the primary
+   path.
 3. Auth rate limits: Supabase provides defaults — confirm they're enabled
    (spec §15.9), don't assume.
 4. Env vars on Vercel: everything in `.env.example`; NewebPay + ezPay
