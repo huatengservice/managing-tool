@@ -1,0 +1,18 @@
+import { createClient } from "@supabase/supabase-js";
+process.loadEnvFile(".env.local");
+const URL = process.env.NEXT_PUBLIC_SUPABASE_URL, ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const admin = createClient(URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+const email = `guard-${Date.now()}@phone.huateng.local`;
+await admin.auth.admin.createUser({ email, password: "test-password-123", email_confirm: true });
+const c = createClient(URL, ANON, { auth: { persistSession: false } });
+await c.auth.signInWithPassword({ email, password: "test-password-123" });
+const { data: cid } = await c.rpc("create_company", { p_name: "PlanGuard 測試" });
+const { error: upErr } = await c.from("companies").update({ plan_id: "pro" }).eq("id", cid);
+const { data: a1 } = await c.from("companies").select("plan_id").eq("id", cid).single();
+console.log("BO upgrade attempt:", a1.plan_id === "starter" ? "✓ blocked" : "✗ NOT BLOCKED", `(${upErr?.message ?? "no error"})`);
+const { error: svcErr } = await admin.from("companies").update({ plan_id: "growth" }).eq("id", cid);
+const { data: a2 } = await admin.from("companies").select("plan_id").eq("id", cid).single();
+console.log("service-role upgrade:", a2.plan_id === "growth" && !svcErr ? "✓ allowed" : "✗ blocked");
+const { error: downErr } = await c.from("companies").update({ plan_id: "starter" }).eq("id", cid);
+const { data: a3 } = await c.from("companies").select("plan_id").eq("id", cid).single();
+console.log("BO downgrade to starter:", a3.plan_id === "starter" && !downErr ? "✓ allowed" : "✗ blocked");
